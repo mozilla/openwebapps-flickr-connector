@@ -1,0 +1,107 @@
+<html>
+<head>
+<title>Flickr Connector</title>
+<script type="text/javascript" src="/static/js/jquery-1.4.4.min.js"></script>
+<link type="text/css" href="/static/css/style.css" rel="stylesheet" />
+<link rel="application-manifest" href="/flickrconnector.webapp"></link>
+
+<script>
+{% if newCredentials %}
+  window.localStorage.setItem("token", "{{ credentials["auth"]["token"]["_content"] }}");
+  window.localStorage.setItem("usernsid", "{{ credentials["auth"]["user"]["nsid"] }}");
+  window.localStorage.setItem("username", "{{ credentials["auth"]["user"]["username"] }}");
+{% end %}
+
+function disconnect() {
+  window.localStorage.setItem("token", null);
+  window.localStorage.setItem("usernsid", null);
+  window.localStorage.setItem("username", null);
+  $("#connected").hide();
+  $("#notconnected").show();
+}
+
+function install() {
+    navigator.apps.install({
+      url:"/flickr.webapp", 
+      success: function() {
+        $("#notinstalled").fadeOut($("#installed").fadeIn());
+      },
+      error: function() {
+      
+      }
+    });
+}
+
+function init() {
+  if (window.localStorage.getItem("token")) {
+    $("#notconnected").hide();
+  } else {
+    $("#connected").hide();
+  }
+  // XX check installed
+  $("#installed").hide();
+  $("#notinstalled").hide();
+  navigator.apps.amInstalled(function(installed) {
+    if (installed) $("#installed").show();
+    else $("#notinstalled").show();
+  });
+}
+</script>
+</head>
+
+<body onLoad="init();">
+
+<div class="container">
+<p>This is the Flickr Connector application.</p>
+
+<p>It is a product of Mozilla Labs, and is experimental code.  It is intended
+to show how a Flickr integration with an Open Web Apps service framework
+would work.</p>
+
+<p>Eventually we would hope that Flickr would host this code themselves;
+for now, we ask users to authorize us to access their data on their behalf.
+</p>
+
+<div id="notinstalled">
+<p>The Flickr Connector application is <em>not installed.</em>  You will
+need to install it into your browser before it can do anything interesting for you.</p>
+
+<p style="text-align:center">
+  <a class="button" href="javascript:install()">Install Application</a>
+</p>
+</div>
+
+<div id="installed">
+<p>The Flickr Connector application is installed.</p>
+</div>
+
+<div id="notconnected">
+<p>By connecting to Flickr, you will authorize your browser to connect
+to Flickr to share your photos with other websites and web applications.
+You will still be asked to give your permission before anything is shared.
+</p>
+
+<div style="text-align:center">
+  <a class="button" href="/connect/start">Connect to Flickr</a>
+</div>
+</div>
+
+<div id="connected">
+<p>This browser is connected to Flickr.  It may now share your photos with
+other websites and web applications. You will still be asked to give your
+permission before anything is shared.
+</p>
+
+<div style="text-align:center">
+  <a class="button" href="javascript:disconnect()">Disconnect</a>
+</div>
+</div>
+
+
+</div> <!-- end info -->
+
+<div id="kicker">A <a href="#">Mozilla Labs</a> Project &middot; <a href="http://mozilla.com/privacy">Privacy Policy</a></div>
+</body>
+
+</html>
+

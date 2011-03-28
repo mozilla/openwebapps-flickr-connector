@@ -1,0 +1,187 @@
+<html>
+<head>
+<title>Flickr Photo Picker</title>
+<script type="text/javascript" src="/static/js/jschannel.js"></script>
+<script type="text/javascript" src="/static/js/jquery-1.4.4.min.js"></script>
+<link type="text/css" href="/static/css/style.css" rel="stylesheet" />
+<script>
+
+var gRequestArguments = null;
+var gSelectedPhoto;
+
+// XX need some way to message up to UA that "Okay" should be enabled
+chan = Channel.build({window: window.parent, origin: "*", scope: "http://localhost:8410/service/getPhoto"});
+
+chan.bind("photos.get", function(t, args) {
+  gRequestArguments = args;
+  loadPhotoSets(gotPhotoSets);
+});
+
+chan.bind("confirm", function(t, args) {
+  if (gRequestArguments && gRequestArguments.expectURL) {
+
+    // So, we have some options here for the size.
+    // We aren't currently receiving the "original" file -
+    // which may not be what we want anyway, given the source
+    // format variability.  The "l" option is "large" - 1024 on
+    // longest size - but is not available for all images.
+    
+    // "z" is 640 on longest side, and should be available.
+    // But the safest thing to do would be to work through
+    // [l, z, m, t, s].
+    var sizes = ["l", "z", "m", "t", "s"];
+    for (var i=0;i<sizes.length;i++)
+    {
+      if (gSelectedPhoto["url_" + sizes[i]]) {
+        return gSelectedPhoto["url_" + sizes[i]];
+      }
+    }
+    return "No photo, that's not right";// XX exception
+  } else {
+    return "That was weird"// xx exception
+  }
+});
+
+function load(url, args, cb)
+{
+  args.usernsid = window.localStorage.getItem("usernsid");
+  args.token = window.localStorage.getItem("token");
+  $.getJSON(url, args, cb);
+}
+
+function loadPhotoSets(cb)
+{
+  load("/get/photosets", {}, cb);
+}
+
+function loadPhotos(photosetID, cb)
+{
+  load("/get/photos", {photosetid:photosetID}, cb);
+}
+
+function loadPhotoSizes(photoID, cb)
+{
+  load("/get/photosizes", {photoid:photoid}, cb);
+}
+
+function init() {
+
+}
+
+function gotPhotoSets(photosetData)
+{
+  gPhotoSets = photosetData.photosets.photoset;
+  gPhotoSetFetchQueue.push(gPhotoSets[0]);
+  startPhotosLoader();
+}
+
+function render(newSetID)
+{
+  $("#photosetList").empty();
+  for (var i=0;i<gPhotoSets.length;i++) {
+    var set = gPhotoSets[i];
+    set.domCounter = i;
+    var div = $("<div class='set'/>").attr("id", "photoset" + i);
+    var heading = $("<div class='setHeading'/>").text(set.title._content);
+    div.append(heading);
+    $("#photosetList").append(div);
+  }
+}
+
+function makeClickFn(photo, img)
+{
+  return function() {
+    if (gSelectedPhoto) {
+      console.log("removing " + gSelectedPhoto.domID);
+      $("#" + gSelectedPhoto.domID).removeClass("selected");
+    }
+    gSelectedPhoto = photo;
+    img.addClass("selected");
+    
+    // render a size picker for it?
+  }
+}
+
+function renderPhotosetThumbs(photoset)
+{
+  var thumbs = $("<div class='setThumbnails'/>");
+  if (photoset.retrievedPhotosData) {
+    for (var j=0;j<photoset.retrievedPhotosData.photoset.photo.length;j++) {
+      var photo = photoset.retrievedPhotosData.photoset.photo[j];
+      photo.domID = "photo" + photoset.domCounter + "_" + j;
+      var img = $("<img/>").attr({id:"photo" + photoset.domCounter + "_" + j, src:photo.url_sq, width:photo.width_sq, height:photo.height_sq});
+
+      img.click(makeClickFn(photo, img));
+      thumbs.append(img);
+    }
+  }
+  $("#photoset" + photoset.domCounter).append(thumbs);
+  thumbs.hide().fadeIn();
+}
+
+
+function startPhotosLoader()
+{
+  var counter = 0;
+  render();
+  
+  function loadSet() {
+    var set = gPhotoSetFetchQueue.pop();
+    
+    loadPhotos(set.id, function(setData) {
+      set.retrievedPhotosData = setData;
+      renderPhotosetThumbs(set);
+      
+      if (gPhotoSetFetchQueue.length > 0) {
+        loadSet();
+      }
+    });
+  }
+  loadSet();
+}
+
+var gPhotoSets = [];
+var gPhotoSetFetchQueue = [];
+
+</script>
+<style>
+#photosetList
+{
+}
+#photosetList .setHeading
+{
+  font:bold 8pt "lucida grande",tahoma,verdana,arial,sans-serif;
+  margin-top:4px;
+  margin-bottom:4px;
+  margin-left:4px;
+}
+#photosetList .setThumbnails
+{
+  margin-left:8px;
+}
+
+#photosetList img
+{
+  margin-left:6px;
+  margin-top:4px;
+  margin-bottom:4px;
+  border:2px solid white;
+}
+
+.selected {
+  -webkit-box-shadow: 0px 0px 2px #dddd00;
+     -moz-box-shadow: 0px 0px 2px #dddd00;
+          box-shadow: 0px 0px 2px #dddd00;
+          border:2px solid #dddd00 !important;
+  
+}
+
+
+</style>
+</head>
+<body onload="init()">
+
+<div id="photosetList"></div>
+
+</body>
+</html>
