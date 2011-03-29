@@ -5,9 +5,13 @@ import tornado.auth
 import tornado.ioloop
 import tornado.web
 import os
+import base64
 import json
 import hashlib
 import config
+import urllib
+import cStringIO
+import mimetools
 
 class WebHandler(tornado.web.RequestHandler):
   def get_current_user(self):
@@ -103,9 +107,9 @@ class FlickrConnect(WebHandler):
   def get(self):
     # http://flickr.com/services/auth/?api_key=[api_key]&perms=[perms]&api_sig=[api_sig]
     
-    sigval = config.KEYS["flickrSecret"] + "api_key" + config.KEYS["flickrAPIKey"] + "permsread"
+    sigval = config.KEYS["flickrSecret"] + "api_key" + config.KEYS["flickrAPIKey"] + "permswrite"
     sighash = hashlib.md5(sigval).hexdigest()
-    url = "http://flickr.com/services/auth/?api_key=%s&perms=read&api_sig=%s" % (config.KEYS["flickrAPIKey"], sighash)
+    url = "http://flickr.com/services/auth/?api_key=%s&perms=write&api_sig=%s" % (config.KEYS["flickrAPIKey"], sighash)
     self.redirect(url)
 
 class GetFlickrPhotos(WebHandler):
@@ -219,20 +223,96 @@ class GetPhotoSizes(WebHandler):
     self.write(response.body)
     self.finish()
 
+class PostPhoto(WebHandler):
+  @tornado.web.asynchronous
+  def post(self):
+    try:
+      photo = self.get_argument("photo") #base64ed?
+      title = self.get_argument("title", None)
+      description = self.get_argument("description", None)
+      tags = self.get_argument("tags", None) # space-separated
+      # maybe hidden?
+      
+      authToken = self.get_argument("token")
+      
+      http = tornado.httpclient.AsyncHTTPClient()
+      request = {
+        "auth_token":authToken,
+        "api_key": config.KEYS["flickrAPIKey"],
+      }
+      if description: request["description"] = description
+      if title: request["title"] = title
+      if tags: request["tags"] = tags
+
+      signature = self.sign_request(request)
+      request["api_sig"] = signature
+      
+      photoFile = cStringIO.StringIO(base64.b64decode(photo));
+#      files = {"thefile": photoFile}
+      boundary, body = multipart_encode(request.items(), [ ("photo", "thefile.jpg", photoFile, "image/jpg" ) ])
+
+      headers = { "Content-Type": "multipart/form-data; boundary=" + boundary }
+
+      httpRequest = tornado.httpclient.HTTPRequest(
+        "http://api.flickr.com/services/upload/",
+        method = "POST",
+        headers = headers,
+        body = body
+      )
+      
+      http.fetch(httpRequest,  callback=self.on_response)
+    except Exception, e:
+      logging.exception(e)
+      raise tornado.web.HTTPError(500)
+
+  def on_response(self, response):
+    logging.error(response.body)
+    
+    if response.error: 
+      logging.error(response.error)
+      raise tornado.web.HTTPError(500)
+    
+    # Response is always XML
+    # TODO parse the XML. :)
+    #json = tornado.escape.json_decode(response.body)
+    self.write(response.body)
+    self.finish()
 
 
-class Service_GetPhotos(WebHandler):
+def multipart_encode(vars, files, boundary = None, buf = None):
+    if boundary is None:
+        boundary = mimetools.choose_boundary()
+    if buf is None:
+        buf = cStringIO.StringIO()
+    for(key, value) in vars:
+        buf.write('--%s\r\n' % boundary)
+        buf.write('Content-Disposition: form-data; name="%s"' % key)
+        buf.write('\r\n\r\n' + value + '\r\n')
+    for(name, filename, file, contenttype) in files:
+        file.seek(os.SEEK_END)
+        file_size = file.tell()
+        file.seek(os.SEEK_SET)
+        buf.write('--%s\r\n' % boundary)
+        buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (name, filename))
+        buf.write('Content-Type: %s\r\n' % contenttype)
+        # buffer += 'Content-Length: %s\r\n' % file_size
+        buf.write('\r\n' + file.read() + '\r\n')
+    buf.write('--' + boundary + '--\r\n\r\n')
+    buf = buf.getvalue()
+    return boundary, buf
+
+class Service_GetImage(WebHandler):
   def get(self):
-    self.render("service_getPhotos.html")
+    self.render("service_getImage.html")
+
+class Service_SendImage(WebHandler):
+  def get(self):
+    self.render("service_sendImage.html")
 
 class WebAppManifestHandler(WebHandler):
   def get(self):
     self.set_header("Content-Type", "application/x-web-app-manifest+json")
     self.render("flickrconnector.webapp")
-
-class ServiceHandler(WebHandler):
-  def get(self):
-    self.render("myphotos_svc.html")
 
 
 ##################################################################
@@ -250,14 +330,15 @@ settings = {
 
 application = tornado.web.Application([
     (r"/flickr.webapp", WebAppManifestHandler),
-    (r"/service", ServiceHandler),
     (r"/connect/done", FlickrConnectDone),
     (r"/connect/start", FlickrConnect),
     (r"/get/photosets", GetPhotosets),
     (r"/get/photos", GetPhotos),
     (r"/get/photosizes", GetPhotoSizes),
+    (r"/post/photo", PostPhoto),
     (r"/retrieve", GetFlickrPhotos),
-    (r"/service/getPhoto", Service_GetPhotos),
+    (r"/service/getImage", Service_GetImage),
+    (r"/service/sendImage", Service_SendImage),
     (r"/xrds", XRDSHandler),
     (r"/", MainHandler),
  

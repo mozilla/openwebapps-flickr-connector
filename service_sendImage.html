@@ -1,0 +1,197 @@
+<html>
+<head>
+<title>Flickr Image Uploader</title>
+<script type="text/javascript" src="/static/js/jschannel.js"></script>
+<script type="text/javascript" src="/static/js/jquery-1.4.4.min.js"></script>
+<link type="text/css" href="/static/css/style.css" rel="stylesheet" />
+<script>
+
+var gRequestArguments = null;
+
+// XX need some way to message up to UA that "Okay" should be enabled
+chan = Channel.build({window: window.parent, origin: "*", scope: "http://localhost:8410/service/sendImage"});
+
+chan.bind("image.send", function(t, args) {
+  try {
+    gRequestArguments = args;
+    if (!args.data) {
+        throw "missing photo";
+    }
+
+    renderPreview();
+
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+});
+
+chan.bind("confirm", function(t, args) {
+
+  // don't return yet...
+  t.delayReturn();
+  
+  // do the save...
+  var call = {};
+  call.photo = gRequestArguments.data;
+  call.title = $("#title").val();
+  call.description = $("#description").val();
+  call.tags = $("#tags").val();
+
+  $("status_msg").text("Saving photo...");
+  savePhoto(call, function() {
+    // when we're done, return.
+    $("#status_msg").text("Photo saved!");
+    t.complete(true);
+  });
+});
+
+function post(url, args, cb)
+{
+  args.usernsid = window.localStorage.getItem("usernsid");
+  args.token = window.localStorage.getItem("token");
+  $.post(url, args, cb);
+}
+
+function savePhoto(args, cb)
+{
+  post("/post/photo", args, cb);
+}
+
+$("#status").ajaxError(function() {
+  $("#status_msg").text("sorry, something didn't work");
+});
+
+function renderPreview()
+{
+  $("#preview").attr("src", "data:image/jpg;base64," + gRequestArguments.data);
+  
+  if (gRequestArguments.title) $("#title").val(gRequestArguments.title);
+  if (gRequestArguments.description) $("#description").val(gRequestArguments.description);
+  if (gRequestArguments.tags) $("#tags").val(gRequestArguments.tags);
+}
+
+function init() {
+
+}
+
+</script>
+<style>
+BODY {
+  margin-top:10px;
+  margin-left:8px;
+}
+
+#preview_box {
+  display:inline-block;
+  width:128px;
+  height:128px;
+  margin-right:16px;
+  text-align:center;
+}
+
+#preview {
+  padding:2px;
+  max-width:124px;
+  max-height:124px;
+  margin: auto;
+
+  border-left:2px solid #fafafa;
+  border-top:2px solid #fafafa;
+  border-right:2px solid #ddd;
+  border-bottom:2px solid #ddd;
+
+}
+
+#metadata_box {
+  display:inline-block;
+  width:300px;
+  vertical-align:top
+}
+
+.row {
+  font:bold 8pt "lucida grande",tahoma,verdana,arial,sans-serif;
+  display:block;
+  margin-bottom:4px;
+  width:298px;
+}
+
+.label {
+  vertical-align:top;
+  display:inline-block;
+  width:100px;
+}
+
+.value {
+  display:inline-block;
+  width:194px;  
+}
+
+textarea {
+  font:8pt "lucida grande",tahoma,verdana,arial,sans-serif;
+}
+
+button {
+  height: 24px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #aaa;
+  cursor: pointer;
+  padding: 0 10px;
+
+  -webkit-border-radius: 2px;
+     -moz-border-radius: 2px;
+          border-radius: 2px;
+
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #fafafa), color-stop(100%, #ddd));
+  background-image: -moz-linear-gradient(center top , #fafafa 0%, #ddd 100%);
+}
+
+button:active {
+  -webkit-box-shadow: 0 0 1px #666666 inset;
+     -moz-box-shadow: 0 0 1px #666666 inset;
+          box-shadow: 0 0 1px #666666 inset;
+
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #eee), color-stop(100%, #ccc));
+  background-image: -moz-linear-gradient(center top , #eee 0%, #ccc 100%);
+}
+
+
+
+
+
+
+</style>
+</head>
+<body onload="init()">
+
+<div id="preview_box">
+  <img id="preview" />
+</div>
+
+<div id="metadata_box">
+  <div class="row">
+    <div class="label">Title</div>
+    <input class="value" type="text" id="title">
+  </div>
+
+  <div class="row">
+    <div class="label">Description</div>
+    <textarea class="value" id="description" style="height:60px"></textarea>
+  </div>
+
+  <div class="row">
+    <div class="label">Tags</div>
+    <input class="value" type="text" id="tags">
+  </div>
+
+    
+</div>
+
+
+<div id="status_box">
+  <div id="status_msg"></div>
+</div>
+
+</body>
+</html>

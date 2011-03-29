@@ -10,7 +10,12 @@
     },
     "experimental": {
       "services": [
-        { "photos.get": "/service/getPhoto" }
+        { 
+          "image.get": "/service/getImage"
+        },
+        {
+          "image.send": "/service/sendImage"
+        }
       ]
     }
 }

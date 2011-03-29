@@ -10,9 +10,9 @@ var gRequestArguments = null;
 var gSelectedPhoto;
 
 // XX need some way to message up to UA that "Okay" should be enabled
-chan = Channel.build({window: window.parent, origin: "*", scope: "http://localhost:8410/service/getPhoto"});
+chan = Channel.build({window: window.parent, origin: "*", scope: "http://localhost:8410/service/getImage"});
 
-chan.bind("photos.get", function(t, args) {
+chan.bind("image.get", function(t, args) {
   gRequestArguments = args;
   loadPhotoSets(gotPhotoSets);
 });
