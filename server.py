@@ -8,10 +8,21 @@ import os
 import base64
 import json
 import hashlib
-import config
 import urllib
 import cStringIO
 import mimetools
+import sys
+
+# search for server configuration (API keys and such)
+CONFIG_FILE_NAME = 'config.py'
+if os.path.exists(CONFIG_FILE_NAME):
+  import config
+elif os.path.exists(os.path.join("..", CONFIG_FILE_NAME)):
+  sys.path.append('..')
+  import config
+  sys.path.pop()
+else:
+  raise RuntimeError('no configuration file found: %s' % CONFIG_FILE_NAME)
 
 class WebHandler(tornado.web.RequestHandler):
   def get_current_user(self):
