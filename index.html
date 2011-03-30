@@ -2,6 +2,7 @@
 <head>
 <title>Flickr Connector</title>
 <script type="text/javascript" src="/static/js/jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="https://stage.myapps.mozillalabs.com/jsapi/include.js"></script>
 <link type="text/css" href="/static/css/style.css" rel="stylesheet" />
 <link rel="application-manifest" href="/flickrconnector.webapp"></link>
 
@@ -23,11 +24,11 @@ function disconnect() {
 function install() {
     navigator.apps.install({
       url:"/flickr.webapp", 
-      success: function() {
+      onsuccess: function() {
         $("#notinstalled").fadeOut($("#installed").fadeIn());
       },
-      error: function() {
-      
+      onerror: function() {
+
       }
     });
 }
@@ -38,7 +39,8 @@ function init() {
   } else {
     $("#connected").hide();
   }
-  // XX check installed
+
+  // check installed
   $("#installed").hide();
   $("#notinstalled").hide();
   navigator.apps.amInstalled(function(installed) {
