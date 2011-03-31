@@ -64,8 +64,8 @@ $("#status").ajaxError(function() {
 
 function renderPreview()
 {
-  $("#preview").attr("src", "data:image/jpg;base64," + gRequestArguments.data);
-  
+  $("#preview").attr("src", "data:"+ gRequestArguments.mimeType  +";base64," + gRequestArguments.data);
+
   if (gRequestArguments.title) $("#title").val(gRequestArguments.title);
   if (gRequestArguments.description) $("#description").val(gRequestArguments.description);
   if (gRequestArguments.tags) $("#tags").val(gRequestArguments.tags);
