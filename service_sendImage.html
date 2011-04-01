@@ -64,8 +64,7 @@ $("#status").ajaxError(function() {
 
 function renderPreview()
 {
-  $("#preview").attr("src", "data:"+ gRequestArguments.mimeType  +";base64," + gRequestArguments.data);
-
+//  $("#preview").attr("src", "data:"+ gRequestArguments.mimeType  +";base64," + gRequestArguments.data);
   if (gRequestArguments.title) $("#title").val(gRequestArguments.title);
   if (gRequestArguments.description) $("#description").val(gRequestArguments.description);
   if (gRequestArguments.tags) $("#tags").val(gRequestArguments.tags);
@@ -105,15 +104,16 @@ BODY {
 
 #metadata_box {
   display:inline-block;
-  width:300px;
+  width:340px;
   vertical-align:top
 }
 
 .row {
-  font:bold 8pt "lucida grande",tahoma,verdana,arial,sans-serif;
+  font:bold 10pt "lucida grande",tahoma,verdana,arial,sans-serif;
   display:block;
   margin-bottom:4px;
-  width:298px;
+  margin-left:16px;
+  width:450px;
 }
 
 .label {
@@ -124,11 +124,15 @@ BODY {
 
 .value {
   display:inline-block;
-  width:194px;  
+  width:330px;  
 }
 
+input[type=text]
+{
+  font:9pt "lucida grande",tahoma,verdana,arial,sans-serif;
+}
 textarea {
-  font:8pt "lucida grande",tahoma,verdana,arial,sans-serif;
+  font:9pt "lucida grande",tahoma,verdana,arial,sans-serif;
 }
 
 button {
@@ -165,10 +169,11 @@ button:active {
 </head>
 <body onload="init()">
 
+<!--
 <div id="preview_box">
   <img id="preview" />
 </div>
-
+-->
 <div id="metadata_box">
   <div class="row">
     <div class="label">Title</div>
