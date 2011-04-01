@@ -10,7 +10,7 @@ var gRequestArguments = null;
 var gSelectedPhoto;
 
 // XX need some way to message up to UA that "Okay" should be enabled
-chan = Channel.build({window: window.parent, origin: "*", scope: "http://localhost:8410/service/getImage"});
+chan = Channel.build({window: window.parent, origin: "*", scope: "openwebapps_conduit"});
 
 chan.bind("image.get", function(t, args) {
   gRequestArguments = args;
