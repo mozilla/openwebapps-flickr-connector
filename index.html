@@ -33,6 +33,11 @@ function install() {
     });
 }
 
+navigator.apps.services.registerHandler('login', 'doLogin', function(credentials, cb) {
+   // FIXME: determine whether logged in or not and do the right thing
+   cb({'status': 'notloggedin'});
+});
+
 function init() {
   if (window.localStorage.getItem("token")) {
     $("#notconnected").hide();
@@ -47,6 +52,9 @@ function init() {
     if (installed) $("#installed").show();
     else $("#notinstalled").show();
   });
+
+  // tell the apps framework we're ready
+  navigator.apps.services.ready();
 }
 </script>
 </head>
