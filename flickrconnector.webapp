@@ -15,9 +15,6 @@
           },
           "image.send": {
              "endpoint": "/service/sendImage"
-          },
-          "login" : {
-             "dialog": "/service/login"
           }
       }
     }
