@@ -9,9 +9,8 @@
 var gRequestArguments = null;
 
 // XX need some way to message up to UA that "Okay" should be enabled
-var chan = Channel.build({window: window.parent, origin: "*", scope: "openwebapps_conduit"});
 
-chan.bind("image.send", function(t, args) {
+navigator.apps.services.registerHandler('image.send', 'init', function(args, cb) {
   try {
     gRequestArguments = args;
     if (!args.data) {
@@ -24,13 +23,10 @@ chan.bind("image.send", function(t, args) {
     console.log(e);
     throw e;
   }
+   cb({'status': 'ok'});
 });
 
-chan.bind("confirm", function(t, args) {
-
-  // don't return yet...
-  t.delayReturn();
-  
+navigator.apps.services.registerHandler('image.send', 'confirm', function(args, cb, cberr) {
   // do the save...
   var call = {};
   call.photo = gRequestArguments.data;
@@ -42,20 +38,33 @@ chan.bind("confirm", function(t, args) {
   savePhoto(call, function() {
     // when we're done, return.
     $("#status_msg").text("Photo saved!");
-    t.complete(true);
+    cb();
+  }, function() {
+    $("#status_msg").text("Error saving photo");
+    cberr('something went wrong');
   });
 });
 
-function post(url, args, cb)
+// Tell OWA we are now ready to be invoked.
+navigator.apps.services.ready();
+
+function post(url, args, cb, cberr)
 {
   args.usernsid = window.localStorage.getItem("usernsid");
   args.token = window.localStorage.getItem("token");
-  $.post(url, args, cb);
+  // Use .ajax instead of .post so we can specify an error callback.
+  $.ajax({
+    url: url,
+    data: args,
+    type: "POST",
+    success: function() {cb();},
+    error: function(jqXHR, textStatus, errorThrown) {cberr();}
+  });
 }
 
-function savePhoto(args, cb)
+function savePhoto(args, cb, cberr)
 {
-  post("/post/photo", args, cb);
+  post("/post/photo", args, cb, cberr);
 }
 
 $("#status").ajaxError(function() {
